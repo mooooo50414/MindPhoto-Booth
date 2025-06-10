@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindPhoto Booth - ตู้ถ่ายรูปออนไลน์แนวนอน</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px 40px;
+            max-width: 1400px;
+            width: 95%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #764ba2;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .camera-section {
+            flex: 1;
+            text-align: center;
+        }
+
+        #video, #editCanvas {
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            object-fit: cover;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: none;
+            background: #000;
+        }
+
+        .camera-placeholder {
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #333 0%, #555 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin: 0 auto;
+        }
+
+        .permission-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .permission-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 500px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .permission-content h2 {
+            color: #764ba2;
+            margin-bottom: 20px;
+        }
+
+        .permission-content p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .permission-content .steps {
+            text-align: left;
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .camera-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .countdown {
+            font-size: 120px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 30px rgba(0, 0, 0, 0.8), 0 0 60px rgba(118, 75, 162, 0.8);
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            animation: pulse 1s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .side-panel {
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .filter-section {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+            padding: 15px;
+        }
+
+        .filter-section h3 {
+            margin-bottom: 10px;
+            color: #764ba2;
+            font-size: 1.2em;
+        }
+
+        .filter-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .filter-btn {
+            padding: 8px 15px;
+            border: 2px solid #764ba2;
+            background: white;
+            color: #764ba2;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            background: #764ba2;
+            color: white;
+        }
+
+        .filter-btn.active {
+            background: #764ba2;
+            color: white;
+        }
+
+        .photo-strip {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .photo-strip img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .photo-strip img:hover {
+            transform: scale(1.05);
+        }
+
+        .photo-strip img.selected {
+            border: 3px solid #764ba2;
+        }
+
+        .flash-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .flash-effect.active {
+            animation: flash 0.3s ease-out;
+        }
+
+        @keyframes flash {
+            0% { opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0; }
+        }
+
+        .camera-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 10;
+            display: none;
+        }
+
+        .photo-counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(118, 75, 162, 0.9);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 10;
+            display: none;
+        }
+
+        .photo-preview {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 120px;
+            height: 90px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            z-index: 15;
+            display: none;
+        }
+
+        .photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .start-screen {
+            text-align: center;
+            padding: 50px 0;
+        }
+
+        .start-screen h2 {
+            color: #764ba2;
+            margin-bottom: 20px;
+        }
+
+        .start-screen p {
+            margin-bottom: 30px;
+            color: #666;
+        }
+
+        .edit-section {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+            padding: 15px;
+            display: none;
+        }
+
+        .edit-section h3 {
+            margin-bottom: 10px;
+            color: #764ba2;
+            font-size: 1.2em;
+            text-align: center;
+        }
+
+        .edit-tools {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .tool-btn {
+            padding: 8px 15px;
+            border: 2px solid #764ba2;
+            background: white;
+            color: #764ba2;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tool-btn:hover {
+            background: #764ba2;
+            color: white;
+        }
+
+        .tool-btn.active {
+            background: #764ba2;
+            color: white;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                flex-direction: column;
+            }
+            
+            .side-panel {
+                width: 100%;
+                flex-direction: row;
+                overflow-x: auto;
+            }
+            
+            #video, #editCanvas, .camera-placeholder {
+                height: 400px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            #video, #editCanvas, .camera-placeholder {
+                height: 300px;
+            }
+            
+            .filter-buttons, .edit-tools {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 MindPhoto Booth</h1>
+        
+        <div class="permission-modal" id="permissionModal">
+            <div class="permission-content">
+                <h2>📷 ขออนุญาตใช้กล้อง</h2>
+                <p>MindPhoto Booth ต้องการเข้าถึงกล้องของคุณเพื่อถ่ายรูป</p>
+                <div class="steps">
+                    <p><strong>วิธีอนุญาต:</strong></p>
+                    <p>1. เมื่อเบราว์เซอร์ถาม ให้คลิก "Allow" หรือ "อนุญาต"</p>
+                    <p>2. หากปฏิเสธไปแล้ว ให้คลิกไอคอนกล้องในแถบ URL</p>
+                    <p>3. เลือก "อนุญาตเสมอ" แล้วรีเฟรชหน้า</p>
+                </div>
+                <p>🔒 รูปของคุณจะไม่ถูกอัปโหลด ปลอดภัย 100%</p>
+                <button onclick="requestCameraPermission()">✅ เข้าใจแล้ว เปิดกล้อง</button>
+            </div>
+        </div>
+        
+        <div class="start-screen" id="startScreen">
+            <h2>ยินดีต้อนรับสู่ MindPhoto Booth!</h2>
+            <p>ถ่ายรูปสไตล์ photo strip แนวนอน พร้อมแต่งภาพแบบครบครัน</p>
+            <button onclick="showPermissionModal()">🎬 เริ่มถ่ายรูป</button>
+        </div>
+
+        <div class="main-layout" id="mainLayout" style="display: none;">
+            <div class="camera-section" id="cameraSection">
+                <div class="camera-container">
+                    <div class="camera-placeholder" id="cameraPlaceholder">
+                        <div>
+                            <div style="font-size: 48px; margin-bottom: 20px;">📷</div>
+                            <div>รอการอนุญาตใช้กล้อง...</div>
+                            <div style="font-size: 14px; margin-top: 10px;">กรุณาคลิก "Allow" เมื่อเบราว์เซอร์ถาม</div>
+                        </div>
+                    </div>
+                    <video id="video" autoplay playsinline muted></video>
+                    <canvas id="editCanvas"></canvas>
+                    <canvas id="canvas" style="display: none;"></canvas>
+                    <div class="countdown" id="countdown"></div>
+                    <div class="flash-effect" id="flashEffect"></div>
+                    <div class="camera-info" id="cameraInfo">📸 เตรียมพร้อมถ่ายรูป</div>
+                    <div class="photo-counter" id="photoCounter">รูปที่ 1/4</div>
+                    <div class="photo-preview" id="photoPreview">
+                        <img id="previewImg" alt="Last photo">
+                    </div>
+                </div>
+                
+                <div class="controls" id="controls">
+                    <button onclick="startPhotoSession()">📸 ถ่ายรูป (4 รูป)</button>
+                    <button onclick="takeSinglePhoto()">📷 ถ่ายรูปเดี่ยว</button>
+                    <button onclick="switchCamera()" id="switchCameraBtn">🔄 สลับกล้อง</button>
+                    <button onclick="resetSession()">🔄 เริ่มใหม่</button>
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <div class="filter-section" id="filterSection">
+                    <h3>🎨 ฟิลเตอร์</h3>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" onclick="setFilter('none')">ปกติ</button>
+                        <button class="filter-btn" onclick="setFilter('grayscale')">ขาวดำ</button>
+                        <button class="filter-btn" onclick="setFilter('sepia')">ซีเปีย</button>
+                        <button class="filter-btn" onclick="setFilter('vintage')">วินเทจ</button>
+                        <button class="filter-btn" onclick="setFilter('contrast')">คอนทราสต์</button>
+                        <button class="filter-btn" onclick="setFilter('blur')">เบลอ</button>
+                        <button class="filter-btn" onclick="setFilter('rainbow')">สีสันสดใส</button>
+                    </div>
+                </div>
+
+                <div class="photo-strip" id="photoStrip" style="display: none;">
+                    <img id="photo1" alt="Photo 1" onclick="selectPhotoForEdit(0)">
+                    <img id="photo2" alt="Photo 2" onclick="selectPhotoForEdit(1)">
+                    <img id="photo3" alt="Photo 3" onclick="selectPhotoForEdit(2)">
+                    <img id="photo4" alt="Photo 4" onclick="selectPhotoForEdit(3)">
+                </div>
+
+                <div class="edit-section" id="editSection">
+                    <h3>✏️ แต่งรูป</h3>
+                    <div class="edit-tools">
+                        <button class="tool-btn" onclick="setEditMode('adjust')">🎚️ ปรับค่า</button>
+                        <button class="tool-btn" onclick="setEditMode('draw')">✏️ วาด</button>
+                        <button class="tool-btn" onclick="setEditMode('text')">📝 ข้อความ</button>
+                        <button class="tool-btn" onclick="setEditMode('sticker')">⭐ สติกเกอร์</button>
+                    </div>
+                    
+                    <div id="editToolsContent"></div>
+                    
+                    <div class="controls" style="margin-top: 10px;">
+                        <button onclick="saveCurrentEdit()">💾 บันทึก</button>
+                        <button onclick="downloadPhotoStrip()">📥 ดาวน์โหลด</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let editCanvas = document.getElementById('editCanvas');
+        let ctx = canvas.getContext('2d');
+        let editCtx = editCanvas.getContext('2d');
+        let photos = [];
+        let originalPhotos = [];
+        let currentFilter = 'none';
+        let stream = null;
+        let currentEditMode = null;
+        let selectedPhotoIndex = -1;
+        let currentFacingMode = 'user';
+        let permissionRequested = false;
+
+        function showPermissionModal() {
+            document.getElementById('permissionModal').style.display = 'flex';
+        }
+
+        async function requestCameraPermission() {
+            document.getElementById('permissionModal').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('mainLayout').style.display = 'flex';
+            
+            const placeholder = document.getElementById('cameraPlaceholder');
+            const cameraInfo = document.getElementById('cameraInfo');
+            
+            try {
+                // แสดงสถานะ
+                cameraInfo.textContent = '🎥 กำลังขออนุญาตใช้กล้อง...';
+                cameraInfo.style.display = 'block';
+                
+                // ตรวจสอบ browser support
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('เบราว์เซอร์ไม่รองรับการใช้กล้อง');
+                }
+                
+                // ขอ permission
+                console.log('Requesting camera permission...');
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: currentFacingMode
+                    },
+                    audio: false
+                });
+                
+                console.log('Got stream:', stream);
+                
+                // เชื่อมต่อกล้อง
+                video.srcObject = stream;
+                
+                // รอให้ metadata โหลด
+                await new Promise((resolve, reject) => {
+                    video.onloadedmetadata = () => {
+                        console.log('Video metadata loaded');
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        editCanvas.width = video.videoWidth;
+                        editCanvas.height = video.videoHeight;
+                        resolve();
+                    };
+                    video.onerror = reject;
+                });
+                
+                // เล่น video
+                await video.play();
+                console.log('Video playing');
+                
+                // แสดง video
+                placeholder.style.display = 'none';
+                video.style.display = 'block';
+                
+                // ตรวจสอบจำนวนกล้อง
+                await checkCameraDevices();
+                
+                cameraInfo.textContent = '✅ กล้องพร้อมใช้งาน';
+                setTimeout(() => {
+                    cameraInfo.style.display = 'none';
+                }, 2000);
+                
+                permissionRequested = true;
+                
+            } catch (err) {
+                console.error('Camera error:', err);
+                handleCameraError(err);
+            }
+        }
+
+        function handleCameraError(err) {
+            const placeholder = document.getElementById('cameraPlaceholder');
+            const cameraInfo = document.getElementById('cameraInfo');
+            
+            cameraInfo.style.display = 'none';
+            
+            let errorHTML = '<div><div style="font-size: 48px; margin-bottom: 20px;">❌</div>';
+            let alertMessage = '';
+            
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                errorHTML += '<div>คุณปฏิเสธการใช้กล้อง</div>';
+                errorHTML += '<div style="font-size: 14px; margin-top: 10px;">กรุณารีเฟรชหน้าและอนุญาตการใช้กล้อง</div>';
+                alertMessage = 'คุณปฏิเสธการใช้กล้อง\n\nวิธีแก้ไข:\n1. คลิกไอคอนกล้องในแถบ URL\n2. เลือก "อนุญาตเสมอ"\n3. รีเฟรชหน้า (F5)';
+            } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                errorHTML += '<div>ไม่พบกล้อง</div>';
+                alertMessage = 'ไม่พบกล้องในอุปกรณ์\n\nกรุณาตรวจสอบ:\n- อุปกรณ์มีกล้องหรือไม่\n- กล้องเชื่อมต่ออยู่หรือไม่';
+            } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                errorHTML += '<div>กล้องถูกใช้งานอยู่</div>';
+                alertMessage = 'กล้องถูกใช้งานโดยแอปอื่น\n\nกรุณาปิด:\n- Zoom, Teams, Skype\n- แอปกล้องอื่นๆ';
+            } else {
+                errorHTML += '<div>เกิดข้อผิดพลาด</div>';
+                alertMessage = 'เกิดข้อผิดพลาด: ' + err.message;
+            }
+            
+            errorHTML += '</div>';
+            placeholder.innerHTML = errorHTML;
+            
+            setTimeout(() => {
+                alert(alertMessage);
+                // กลับไปหน้าเริ่มต้น
+                document.getElementById('mainLayout').style.display = 'none';
+                document.getElementById('startScreen').style.display = 'block';
+            }, 500);
+        }
+
+        async function checkCameraDevices() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                console.log('Found cameras:', videoDevices.length);
+                
+                if (videoDevices.length <= 1) {
+                    document.getElementById('switchCameraBtn').style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Error checking cameras:', err);
+            }
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            let filterValue = '';
+            switch(filter) {
+                case 'none':
+                    filterValue = 'none';
+                    break;
+                case 'grayscale':
+                    filterValue = 'grayscale(100%)';
+                    break;
+                case 'sepia':
+                    filterValue = 'sepia(100%)';
+                    break;
+                case 'vintage':
+                    filterValue = 'contrast(1.2) saturate(0.8) brightness(1.1) sepia(0.3)';
+                    break;
+                case 'contrast':
+                    filterValue = 'contrast(1.5)';
+                    break;
+                case 'blur':
+                    filterValue = 'blur(2px)';
+                    break;
+                case 'rainbow':
+                    filterValue = 'saturate(2) hue-rotate(30deg)';
+                    break;
+            }
+            video.style.filter = filterValue;
+        }
+
+        async function startPhotoSession() {
+            if (!permissionRequested || !stream) {
+                alert('กรุณาอนุญาตการใช้กล้องก่อน');
+                return;
+            }
+            
+            photos = [];
+            originalPhotos = [];
+            document.getElementById('photoStrip').style.display = 'none';
+            document.getElementById('photoPreview').style.display = 'none';
+            document.getElementById('photoCounter').style.display = 'block';
+            document.getElementById('cameraInfo').style.display = 'block';
+            
+            for (let i = 0; i < 4; i++) {
+                document.getElementById('photoCounter').textContent = `รูปที่ ${i + 1}/4`;
+                document.getElementById('cameraInfo').textContent = '📸 เตรียมพร้อม...';
+                await countdown(3);
+                await takePhoto(i);
+                await sleep(1000);
+            }
+            
+            document.getElementById('photoCounter').style.display = 'none';
+            document.getElementById('cameraInfo').style.display = 'none';
+            showPhotoStrip();
+        }
+
+        async function takeSinglePhoto() {
+            if (!permissionRequested || !stream) {
+                alert('กรุณาอนุญาตการใช้กล้องก่อน');
+                return;
+            }
+            
+            photos = [];
+            originalPhotos = [];
+            document.getElementById('photoPreview').style.display = 'none';
+            
+            await countdown(3);
+            await takePhoto(0);
+            
+            await sleep(1000);
+            selectedPhotoIndex = 0;
+            showEditMode();
+        }
+
+        async function countdown(seconds) {
+            const countdownEl = document.getElementById('countdown');
+            countdownEl.style.display = 'block';
+            
+            for (let i = seconds; i > 0; i--) {
+                countdownEl.textContent = i;
+                countdownEl.style.animation = 'none';
+                setTimeout(() => {
+                    countdownEl.style.animation = 'pulse 1s ease-in-out';
+                }, 10);
+                await sleep(1000);
+            }
+            
+            countdownEl.textContent = '📸';
+            await sleep(300);
+            countdownEl.style.display = 'none';
+        }
+
+        async function takePhoto(index) {
+            ctx.filter = getCanvasFilter();
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const dataUrl = canvas.toDataURL('image/png');
+            photos.push(dataUrl);
+            originalPhotos.push(dataUrl);
+            
+            // Flash effect
+            const flashEl = document.getElementById('flashEffect');
+            flashEl.classList.add('active');
+            setTimeout(() => {
+                flashEl.classList.remove('active');
+            }, 300);
+            
+            // Show preview
+            const previewEl = document.getElementById('photoPreview');
+            const previewImg = document.getElementById('previewImg');
+            previewImg.src = dataUrl;
+            previewEl.style.display = 'block';
+            
+            // Camera sound
+            playShutterSound();
+        }
+
+        function getCanvasFilter() {
+            switch(currentFilter) {
+                case 'grayscale':
+                    return 'grayscale(100%)';
+                case 'sepia':
+                    return 'sepia(100%)';
+                case 'vintage':
+                    return 'contrast(1.2) saturate(0.8) brightness(1.1) sepia(0.3)';
+                case 'contrast':
+                    return 'contrast(1.5)';
+                case 'blur':
+                    return 'blur(2px)';
+                case 'rainbow':
+                    return 'saturate(2) hue-rotate(30deg)';
+                default:
+                    return 'none';
+            }
+        }
+
+        function showPhotoStrip() {
+            document.getElementById('photoStrip').style.display = 'grid';
+            
+            photos.forEach((photo, index) => {
+                if (document.getElementById(`photo${index + 1}`)) {
+                    document.getElementById(`photo${index + 1}`).src = photo;
+                }
+            });
+        }
+
+        function selectPhotoForEdit(index) {
+            selectedPhotoIndex = index;
+            document.querySelectorAll('.photo-strip img').forEach((img, i) => {
+                img.classList.toggle('selected', i === index);
+            });
+            showEditMode();
+        }
+
+        function showEditMode() {
+            if (selectedPhotoIndex === -1 || !photos[selectedPhotoIndex]) return;
+            
+            video.style.display = 'none';
+            editCanvas.style.display = 'block';
+            document.getElementById('cameraPlaceholder').style.display = 'none';
+            
+            const img = new Image();
+            img.onload = () => {
+                editCtx.clearRect(0, 0, editCanvas.width, editCanvas.height);
+                editCtx.drawImage(img, 0, 0, editCanvas.width, editCanvas.height);
+            };
+            img.src = photos[selectedPhotoIndex];
+        }
+
+        function setEditMode(mode) {
+            currentEditMode = mode;
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            const contentEl = document.getElementById('editToolsContent');
+            contentEl.innerHTML = '';
+            
+            switch(mode) {
+                case 'adjust':
+                    contentEl.innerHTML = '<p style="text-align: center; color: #666;">ฟีเจอร์ปรับค่าภาพ - เร็วๆ นี้</p>';
+                    break;
+                case 'draw':
+                    contentEl.innerHTML = '<p style="text-align: center; color: #666;">ฟีเจอร์วาด - เร็วๆ นี้</p>';
+                    break;
+                case 'text':
+                    contentEl.innerHTML = '<p style="text-align: center; color: #666;">ฟีเจอร์ข้อความ - เร็วๆ นี้</p>';
+                    break;
+                case 'sticker':
+                    contentEl.innerHTML = '<p style="text-align: center; color: #666;">ฟีเจอร์สติกเกอร์ - เร็วๆ นี้</p>';
+                    break;
+            }
+        }
+
+        async function switchCamera() {
+            if (!stream) return;
+            
+            const placeholder = document.getElementById('cameraPlaceholder');
+            const cameraInfo = document.getElementById('cameraInfo');
+            
+            video.style.display = 'none';
+            placeholder.style.display = 'flex';
+            placeholder.innerHTML = '<div><div style="font-size: 48px; margin-bottom: 20px;">🔄</div><div>กำลังสลับกล้อง...</div></div>';
+            
+            stream.getTracks().forEach(track => track.stop());
+            
+            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: currentFacingMode
+                    },
+                    audio: false
+                });
+                
+                video.srcObject = stream;
+                await video.play();
+                
+                placeholder.style.display = 'none';
+                video.style.display = 'block';
+                
+                cameraInfo.textContent = currentFacingMode === 'user' ? '📷 กล้องหน้า' : '📷 กล้องหลัง';
+                cameraInfo.style.display = 'block';
+                setTimeout(() => {
+                    cameraInfo.style.display = 'none';
+                }, 2000);
+                
+            } catch (err) {
+                currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+                alert('ไม่สามารถสลับกล้องได้');
+                await requestCameraPermission();
+            }
+        }
+
+        function saveCurrentEdit() {
+            if (selectedPhotoIndex === -1) return;
+            
+            photos[selectedPhotoIndex] = editCanvas.toDataURL('image/png');
+            document.getElementById(`photo${selectedPhotoIndex + 1}`).src = photos[selectedPhotoIndex];
+            
+            alert('บันทึกการแต่งรูปเรียบร้อย!');
+        }
+
+        async function downloadPhotoStrip() {
+            const stripCanvas = document.createElement('canvas');
+            const stripCtx = stripCanvas.getContext('2d');
+            
+            // แนวนอน 2x2
+            stripCanvas.width = 800;
+            stripCanvas.height = 400;
+            
+            stripCtx.fillStyle = 'white';
+            stripCtx.fillRect(0, 0, stripCanvas.width, stripCanvas.height);
+            
+            const positions = [
+                {x: 20, y: 20},
+                {x: 410, y: 20},
+                {x: 20, y: 210},
+                {x: 410, y: 210}
+            ];
+            
+            for (let i = 0; i < Math.min(photos.length, 4); i++) {
+                const img = new Image();
+                img.src = photos[i];
+                await new Promise(resolve => {
+                    img.onload = () => {
+                        stripCtx.drawImage(img, positions[i].x, positions[i].y, 370, 170);
+                        resolve();
+                    };
+                });
+            }
+            
+            stripCtx.fillStyle = '#333';
+            stripCtx.font = 'bold 24px Arial';
+            stripCtx.textAlign = 'center';
+            stripCtx.fillText('MindPhoto Booth', 400, 350);
+            
+            const date = new Date().toLocaleDateString('th-TH');
+            stripCtx.font = '16px Arial';
+            stripCtx.fillText(date, 400, 380);
+            
+            const link = document.createElement('a');
+            link.download = `mindphoto-booth-${Date.now()}.png`;
+            link.href = stripCanvas.toDataURL();
+            link.click();
+        }
+
+        function resetSession() {
+            photos = [];
+            originalPhotos = [];
+            selectedPhotoIndex = -1;
+            
+            document.getElementById('photoStrip').style.display = 'none';
+            document.getElementById('photoPreview').style.display = 'none';
+            document.getElementById('cameraPlaceholder').style.display = 'none';
+            video.style.display = 'block';
+            editCanvas.style.display = 'none';
+        }
+
+        function playShutterSound() {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBCxuxO3Yk0ULH2i96+OZURE');
+            audio.volume = 0.3;
+            audio.play().catch(() => {});
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ทำความสะอาด stream เมื่อปิดหน้าเว็บ
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        // ตรวจสอบ HTTPS
+        window.addEventListener('load', () => {
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                const warningEl = document.createElement('div');
+                warningEl.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #ff6b6b; color: white; text-align: center; padding: 10px; z-index: 9999;';
+                warningEl.innerHTML = '⚠️ คำเตือน: กล้องอาจไม่ทำงานเพราะไม่ได้ใช้ HTTPS - ควรใช้ https:// หรือ localhost';
+                document.body.appendChild(warningEl);
+            }
+        });
+    </script>
+</body>
+</html>
